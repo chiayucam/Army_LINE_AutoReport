@@ -1,8 +1,8 @@
 # Army_LINE_AutoReport
-國軍放假自動回報排程  
+國軍休假自動回報排程  
 
 
-一個使用selenium自動化套件操作LINE Chrome Extension的自動回報小程式, 讓你100/100的享受休假時光  
+一個使用selenium自動化套件操作LINE Chrome Extension的自動回報程式, 讓你完完整整的享受休假時間  
 
 ## 檔案說明  
 ### source_code (python源代碼)
