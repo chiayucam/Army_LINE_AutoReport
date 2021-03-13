@@ -251,7 +251,7 @@ def get_insert_position(schedule_tree, datetime_str):
         return "end"
 
 def get_prev_message(check_num):
-    WebDriverWait(driver, 5, poll_frequency=0.1, ignored_exceptions=(TimeoutException)).until(EC.presence_of_element_located((By.ID, "_chat_room_input")))
+    WebDriverWait(driver, 5, poll_frequency=1, ignored_exceptions=(TimeoutException)).until(EC.presence_of_element_located((By.ID, "_chat_room_input")))
     prev_messages = driver.find_elements_by_class_name("mdRGT07MsgTextInner")[-check_num:]
     report_title = get_report_title(datetime.now())
     keywords = report_title.split(" ")[:2]
