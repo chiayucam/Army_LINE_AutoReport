@@ -20,5 +20,10 @@
 * extension_2_4_1_0.crx
     * LINE擴充元件
   
+## 使用說明
+* 下載解壓縮後，點擊executable\ROC_armed_forces_auto_report.exe
+* 至設定->系統->電源與睡眠 將睡眠時間更改為永不
+* 本程式所使用chromedriver.exe需與當前電腦Chrome版本相同，可至Chrome瀏覽器右上角標示 :->說明->關於Google Chrome 找到當前使用的版本
+  
 ## 介面說明 
 ![example](https://user-images.githubusercontent.com/48814609/110164957-16700400-7e2d-11eb-9edd-e8589a7ff92b.PNG)
