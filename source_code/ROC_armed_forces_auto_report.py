@@ -21,9 +21,9 @@ from threading import Timer
 class App:
     def __init__(self, window):
         self.window = window
-        self.window.title('國軍LINE回報排程 v1.0')
+        self.window.title('國軍LINE回報排程 v1.1')
         self.window.protocol("WM_DELETE_WINDOW", self.on_exit)
-        self.window.geometry('780x390')
+        self.window.geometry('780x440')
         self.window.configure(background='white')
         self.window.resizable(False, False)
 
@@ -63,7 +63,7 @@ class App:
         ###################
         ## message frame ##
         ###################
-        self.message_frame = tk.Frame(self.window, height=220, width=300, borderwidth=1, highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.message_frame = tk.Frame(self.window, height=270, width=300, borderwidth=1, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         self.message_frame.grid(column=0, row=1, padx=10, pady=10, sticky="NW")
         self.message_frame.pack_propagate(0)
 
@@ -86,9 +86,17 @@ class App:
         self.datetime_entry.insert(0, datetime.now().strftime('%m/%d, %H:%M:%S'))
         self.datetime_entry.pack(side="left")
         self.datetime_entry.config(state="disabled")
-
+        
+        self.headertype_frame = tk.Frame(self.message_frame)
+        self.headertype_frame.pack(side="top", pady=5)
+        self.headertype_label = tk.Label(self.headertype_frame, text="標頭格式:")
+        self.headertype_label.pack(side="left")
+        self.headertype_combobox = ttk.Combobox(self.headertype_frame, state="disabled", values=["無標頭", "M/D hhmm 回報"], width=27)
+        self.headertype_combobox.current(0)
+        self.headertype_combobox.pack(side="left")
+        
         self.content_frame = tk.Frame(self.message_frame)
-        self.content_frame.pack(side="top")
+        self.content_frame.pack(side="top", pady=5)
         self.content_label = tk.Label(self.content_frame, text="傳送內容:")
         self.content_label.pack(side="left", anchor="nw")
         self.content_text = tk.Text(self.content_frame, height=7, width=30, font="TkDefaultFont")
@@ -102,14 +110,14 @@ class App:
         ####################
         ## schedule frame ##
         ####################
-        self.schedule_frame = tk.Frame(self.window, height=380, width=450, borderwidth=1, highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.schedule_frame = tk.Frame(self.window, height=430, width=450, borderwidth=1, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         self.schedule_frame.grid(column=1, row=0, rowspan=2, sticky="NW", padx=1)
         self.schedule_frame.pack_propagate(0)
 
         self.schedule_label = tk.Label(self.schedule_frame, text="預定傳送排程", font="bold, 11")
         self.schedule_label.pack()
 
-        self.schedule_tree = ttk.Treeview(self.schedule_frame, columns=['1','2','3'], show='headings', height=14, selectmode="browse")
+        self.schedule_tree = ttk.Treeview(self.schedule_frame, columns=['1','2','3'], show='headings', height=16, selectmode="browse")
         self.schedule_tree.column('1', width=110, anchor="w")
         self.schedule_tree.column('2', width=200, anchor="w")
         self.schedule_tree.column('3', width=110, anchor="w")
@@ -119,17 +127,14 @@ class App:
         self.schedule_tree.pack(pady=5)
 
         self.delete_btn = tk.Button(self.schedule_frame, text="刪除排程", command=self.delete_btn_press)
-        self.delete_btn.pack(pady=5)
+        self.delete_btn.pack(pady=10)
         self.delete_btn.config(state="disabled")
 
     def login_btn_press(self):
         login(ID=self.account_entry.get(), password=self.password_entry.get())
-        WebDriverWait(driver, 5, poll_frequency=0.1, ignored_exceptions=(TimeoutException)).until(EC.presence_of_element_located((By.CLASS_NAME, "mdCMN01Code")))
         try:
-            incorrect_text = driver.find_element_by_id("login_incorrect").get_attribute("innerText")
-            self.login_status_label.config(text=incorrect_text, fg="red")
-            self.login_frame.config(highlightbackground="red", highlightcolor="red")
-        except NoSuchElementException:
+            driver.implicitly_wait(5)
+            driver.find_element_by_class_name("mdCMN01Code")
             self.login_status_label.config(text="登入成功", fg="green")
             self.login_frame.config(highlightbackground="green", highlightcolor="green")
             self.config_code_label.config(text="請於手機版LINE輸入驗證碼:"+get_config_code())
@@ -138,9 +143,14 @@ class App:
             self.password_entry.config(state="disabled")
             self.chatroom_entry.config(state="normal")
             self.datetime_entry.config(state="normal")
+            self.headertype_combobox.config(state="readonly")
             self.content_text.config(state="normal")
             self.insert_btn.config(state="normal")
             self.delete_btn.config(state="normal")
+        except (NoSuchElementException, TimeoutException) as error:
+            incorrect_text = driver.find_element_by_id("login_incorrect").get_attribute("innerText")
+            self.login_status_label.config(text=incorrect_text, fg="red")
+            self.login_frame.config(highlightbackground="red", highlightcolor="red")
 
     def insert_btn_press(self):
         if check_time_format_valid(self.datetime_entry.get()):
@@ -149,7 +159,8 @@ class App:
             datetime_str, report_message, chatroom_name = self.schedule_tree.item(self.schedule_tree.get_children()[0])["values"]
             report_message = report_message.rstrip()
             report_datetime = datetime.strptime(str(datetime.now().year)+"/"+datetime_str, '%Y/%m/%d, %H:%M:%S')
-            update_timer(report_datetime, report_message, chatroom_name)
+            headertype = self.headertype_combobox.get()
+            update_timer(report_datetime, report_message, chatroom_name, headertype)
         else:
             time_format_incorrect_popup()
 
@@ -159,7 +170,8 @@ class App:
             datetime_str, report_message, chatroom_name = self.schedule_tree.item(self.schedule_tree.get_children()[0])["values"]
             report_message = report_message.rstrip()
             report_datetime = datetime.strptime(str(datetime.now().year)+"/"+datetime_str, '%Y/%m/%d, %H:%M:%S')
-            update_timer(report_datetime, report_message, chatroom_name)
+            headertype = self.headertype_combobox.get()
+            update_timer(report_datetime, report_message, chatroom_name, headertype)
         except IndexError:
             kill_timer()
 
@@ -174,7 +186,7 @@ def init_webdriver():
     chrome_options = Options()
     chrome_options.add_extension('extension_2_4_1_0.crx')
     driver = webdriver.Chrome('./chromedriver.exe', options=chrome_options)
-    driver.set_window_position(-10000, 0)
+    # driver.set_window_position(-10000, 0)
     driver.get(extension_path)
     return driver
 
@@ -205,9 +217,7 @@ def select_chatroom(chatroom_name):
         chat_room_search = driver.find_element_by_xpath("//input[@placeholder='搜尋群組名稱']")
         chat_room_search.clear()
         chat_room_search.send_keys(chatroom_name)
-        driver.implicitly_wait(0.5)
         driver.find_element_by_xpath(f"//ul[@id='joined_group_list_body']//li[@title='{chatroom_name}']").click()
-        driver.implicitly_wait(0.5)
     except NoSuchElementException:
         chatroom_name_incorrect_popup(chatroom_name)
 
@@ -250,11 +260,10 @@ def get_insert_position(schedule_tree, datetime_str):
     else:
         return "end"
 
-def get_prev_message(check_num):
+def get_prev_message(check_num, headertype):
     WebDriverWait(driver, 5, poll_frequency=1, ignored_exceptions=(TimeoutException)).until(EC.presence_of_element_located((By.ID, "_chat_room_input")))
     prev_messages = driver.find_elements_by_class_name("mdRGT07MsgTextInner")[-check_num:]
-    report_title = get_report_title(datetime.now())
-    keywords = report_title.split(" ")[:2]
+    report_title, keywords = get_report_title(datetime.now(), headertype)
     for prev_message in prev_messages[::-1]:
         prev_message_text = prev_message.get_attribute("innerText")
         if all(keyword in prev_message_text for keyword in keywords):
@@ -265,32 +274,34 @@ def ceil_datetime(dt, delta):
     q, r = divmod(dt - datetime.min, delta)
     return (datetime.min + (q + 1)*delta) if r else dt
 
-def get_report_title(report_datetime):
-    return "{d.month}/{d.day} {d.hour:02}{d.minute:02}".format(d=ceil_datetime(report_datetime, timedelta(hours=1)))+" 回報"
+def get_report_title(report_datetime, headertype):
+    report_title = "{d.month}/{d.day} {d.hour:02}{d.minute:02}".format(d=ceil_datetime(report_datetime, timedelta(hours=1)))+" 回報"
+    keywords = report_title.split(" ")[:2]
+    return report_title, keywords
 
-def execute_timer(report_datetime, report_message, chatroom_name):
+def execute_timer(report_datetime, report_message, chatroom_name, headertype):
     refresh()
     login(ID=app.account_entry.get(), password=app.password_entry.get())
     select_chatroom(chatroom_name)
-    prev_message = get_prev_message(check_num=5)
+    prev_message = get_prev_message(5, headertype)
     if prev_message:
         send_message(insert_message(reformat_message(prev_message), report_message))
     else:
-        send_message([get_report_title(report_datetime), report_message])
+        send_message([get_report_title(report_datetime, headertype), report_message])
     app.schedule_tree.delete(app.schedule_tree.get_children()[0])
     try:
         datetime_str, report_message, chatroom_name = app.schedule_tree.item(app.schedule_tree.get_children()[0])["values"]
         report_message = report_message.rstrip()
         report_datetime = datetime.strptime(str(datetime.now().year)+"/"+datetime_str, '%Y/%m/%d, %H:%M:%S')
-        update_timer(report_datetime, report_message, chatroom_name)
+        update_timer(report_datetime, report_message, chatroom_name, headertype)
     except IndexError:
         kill_timer()
 
-def update_timer(report_datetime, report_message, chatroom_name):
+def update_timer(report_datetime, report_message, chatroom_name, headertype):
     for thread in threading.enumerate():
         if thread.name == "ROC_report_timer":
             thread.cancel()
-    t = Timer(time_diff_seconds(report_datetime), execute_timer, (report_datetime, report_message, chatroom_name))
+    t = Timer(time_diff_seconds(report_datetime), execute_timer, (report_datetime, report_message, chatroom_name, headertype))
     t.daemon = True
     t.name = "ROC_report_timer"
     t.start()
